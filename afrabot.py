@@ -6,6 +6,7 @@ try:
 except:
 	import re
 
+import requests
 from bs4 import UnicodeDammit
 import irc.bot
 import irc.strings
@@ -42,6 +43,17 @@ class Afrabot(irc.bot.SingleServerIRCBot):
 			newcs = match.group(3)
 			self.chaossternchen.append(newcs)
 			c.privmsg(self.channel, 'Chaos-☆ Nr. {} notiert: {}'.format(len(self.chaossternchen), newcs))
+
+		if line.startswith('.wiki '):
+			wikipage = line[len('.wiki '):].strip()
+			if re.match('^[-_+\w]+$', wikipage):
+				wikiurl = 'https://afra-berlin.de/dokuwiki/doku.php?id={}'.format(wikipage)
+				if 'Dieses Thema existiert noch nicht' in requests.get(wikiurl).text:
+					c.privmsg(target, "I'm sorry, I can't find a wiki page with that name.")
+				else:
+					c.privmsg(target, wikiurl)
+			else:
+				c.privmsg(target, 'Try to troll somebot else.')
 
 	def on_dccmsg(self, c, e):
 		c.privmsg("Störe meine Kreise nicht.")
@@ -142,6 +154,9 @@ plenum - list plenum topics
 """
 			for line in helptext.splitlines():
 				c.privmsg(target, line)
+			return
+		if cmd == 'ponies?':
+			c.privmsg(target, 'yes please!')
 			return
 		c.notice(nick, 'I don\'t know what you mean with "{}"'.format(cmd))
 
