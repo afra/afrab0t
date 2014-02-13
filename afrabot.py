@@ -55,6 +55,9 @@ class Afrabot(irc.bot.SingleServerIRCBot):
 			else:
 				c.privmsg(target, 'Try to troll somebot else.')
 
+		if line == 'wat?':
+			c.privmsg(target, "I don't have a clue.")
+
 	def on_dccmsg(self, c, e):
 		c.privmsg("Störe meine Kreise nicht.")
 
@@ -157,6 +160,9 @@ plenum - list plenum topics
 			return
 		if cmd == 'ponies?':
 			c.privmsg(target, 'yes please!')
+			return
+		if re.match('^ *tell +afrab[o0]t +', cmd):
+			c.privmsg(target, 'what is your problem?')
 			return
 		c.notice(nick, 'I don\'t know what you mean with "{}"'.format(cmd))
 
