@@ -11,6 +11,8 @@ from bs4 import UnicodeDammit
 import irc.bot
 import irc.strings
 from irc.client import ip_numstr_to_quad, ip_quad_to_numstr, is_channel
+import pyimgur
+import praw
 
 class Afrabot(irc.bot.SingleServerIRCBot):
 	def __init__(self, channel, nickname, server, port=6667):
@@ -19,6 +21,7 @@ class Afrabot(irc.bot.SingleServerIRCBot):
 		self.nick = nickname.lower()
 		self.lastopen = None
 		self.chaossternchen = []
+		self.catpiccache = []
 
 	def on_nicknameinuse(self, c, e):
 		c.nick(c.get_nickname() + "_")
@@ -43,6 +46,7 @@ class Afrabot(irc.bot.SingleServerIRCBot):
 			newcs = match.group(3)
 			self.chaossternchen.append(newcs)
 			c.privmsg(self.channel, 'Chaos-☆ Nr. {} notiert: {}'.format(len(self.chaossternchen), newcs))
+			return
 
 		if line.startswith('.wiki '):
 			wikipage = line[len('.wiki '):].strip()
@@ -54,9 +58,21 @@ class Afrabot(irc.bot.SingleServerIRCBot):
 					c.privmsg(target, wikiurl)
 			else:
 				c.privmsg(target, 'Try to troll somebot else.')
+			return
 
 		if line == 'wat?':
 			c.privmsg(target, "I don't have a clue.")
+			return
+		if re.match('^hail eris[.!]* ', line.lower()):
+			c.privmsg(target, "All Hail Discordia!")
+			return
+		if re.search('https?://[-a-z0-9.]*facebook.com', line.lower()):
+			c.privmsg(target, 'A facebook link? srsly? Get some self-respect!')
+			return
+		match = re.search('https?://pr0gramm.com/#(newest/\*/[0-9/]*)', line.lower())
+		if match:
+			c.privmsg(target, 'Fixed that pr0gramm link for you: http://pr0gramm.com/static/'+match.group(1))
+			return
 
 	def on_dccmsg(self, c, e):
 		c.privmsg("Störe meine Kreise nicht.")
@@ -163,6 +179,19 @@ plenum - list plenum topics
 			return
 		if re.match('^ *tell +afrab[o0]t +', cmd):
 			c.privmsg(target, 'what is your problem?')
+			return
+		if cmd.rstrip('?') in ('where', 'location', 'wo'):
+			c.privmsg(target, 'AfRA Berlin e.V. is located at Herzbergstr. 55, 10365 Berlin, 2.HH/Aufgang B, 3. floor on the left (Rm 3.08). Public transport: Tram M8, 21, 37 & Bus 256 → Herzbergstr./Siegfriedstr.')
+			return
+		if cmd.rstrip('?!.') in ('cats', 'katzen', 'kittens', 'kätzchen'):
+			try:
+				r = praw.Reddit(user_agent='AfRAb0t v0.23')
+				submissions = r.get_subreddit('cats').get_hot(limit=50)
+				item = next(s for s in submissions if s.url not in self.catpiccache and not s.stickied and not s.is_self)
+				self.catpiccache.append(item.url)
+				c.privmsg(target, 'Got some cats for you: '+item.url)
+			except StopIteration:
+				c.privmsg(target, 'The intertubes are empty.')
 			return
 		c.notice(nick, 'I don\'t know what you mean with "{}"'.format(cmd))
 
