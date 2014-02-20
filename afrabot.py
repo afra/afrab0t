@@ -181,15 +181,18 @@ plenum - list plenum topics
 			c.privmsg(target, 'what is your problem?')
 			return
 		if cmd.rstrip('?') in ('where', 'location', 'wo'):
-			c.privmsg(target, 'AfRA Berlin e.V. is located at Herzbergstr. 55, 10365 Berlin, 2.HH/Aufgang B, 3. floor on the left (Rm 3.08). Public transport: Tram M8, 21, 37 & Bus 256 → Herzbergstr./Siegfriedstr.')
+			c.privmsg(target, 'AfRA Berlin e.V. is located at Herzbergstr. 55, 10365 Berlin, 2.HH/Aufgang B, 3. floor on the left (Rm 3.08). Public transport: Tram M8, 21, 37 & Bus 256, N56, N50 → Herzbergstr./Siegfriedstr.')
 			return
 		if cmd.rstrip('?!.') in ('cats', 'katzen', 'kittens', 'kätzchen'):
 			try:
 				r = praw.Reddit(user_agent='AfRAb0t v0.23')
 				submissions = r.get_subreddit('cats').get_hot(limit=50)
-				item = next(s for s in submissions if s.url not in self.catpiccache and not s.stickied and not s.is_self)
+				index, item = next((i,s) for i,s in enumerate(submissions) if s.url not in self.catpiccache and not s.stickied and not s.is_self)
 				self.catpiccache.append(item.url)
-				c.privmsg(target, 'Got some cats for you: '+item.url)
+				if index != 5:
+					c.privmsg(target, 'Got some cats for you: '+item.url)
+				else:
+					c.privmsg(target, "Gee, you really like those cat things, don't you? You know, I could use some love, too: https://github.com/afra/afrab0t")
 			except StopIteration:
 				c.privmsg(target, 'The intertubes are empty.')
 			return
