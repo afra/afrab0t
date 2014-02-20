@@ -196,6 +196,9 @@ plenum - list plenum topics
 			except StopIteration:
 				c.privmsg(target, 'The intertubes are empty.')
 			return
+		if cmd.rstrip('?!.') in ('answer', 'antworte', 'antwort'):
+			c.privmsg(target, '42')
+			return
 		c.notice(nick, 'I don\'t know what you mean with "{}"'.format(cmd))
 
 def main():
