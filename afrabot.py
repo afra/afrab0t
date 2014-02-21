@@ -13,10 +13,12 @@ import irc.strings
 from irc.client import ip_numstr_to_quad, ip_quad_to_numstr, is_channel
 import pyimgur
 import praw
+import sqlite3
 
 class Afrabot(irc.bot.SingleServerIRCBot):
-	def __init__(self, channel, nickname, server, port=6667):
+	def __init__(self, db, channel, nickname, server, port=6667):
 		irc.bot.SingleServerIRCBot.__init__(self, [(server, port)], nickname, nickname)
+		self.db = db
 		self.channel = channel
 		self.nick = nickname.lower()
 		self.lastopen = None
@@ -199,6 +201,38 @@ plenum - list plenum topics
 		if cmd.rstrip('?!.') in ('answer', 'antworte', 'antwort'):
 			c.privmsg(target, '42')
 			return
+		# key handling
+		keycmd = re.match('key ([\w]+) to ([\w]+)( *: *.*)?', cmd)
+		if keycmd:
+			with self.db as db:
+				keystate, = db.execute("SELECT keystate FROM keylog ORDER BY timestamp DESC LIMIT 1").fetchone()
+				keystatelist = keystate.split(', ')
+				fromnick, tonick, comment = keycmd.groups()
+				if not fromnick in keystatelist:
+					c.privmsg(target, 'According to my information, as of now {} does not have a key. Current key'
+							'holders are {}.'.format(fromnick, keystate))
+					return
+				keystatelist[keystatelist.index(fromnick)] = tonick
+				keystate = ', '.join(keystatelist)
+				db.execute("INSERT INTO keylog VALUES (DATETIME('now'),?,?,?,?)", (fromnick, tonick, keystate, comment))
+				c.privmsg(self.channel, 'Key transfer: {}→{}. Current key holders: {}'.format(fromnick, tonick, keystate))
+			return
+		if cmd.startswith('keystate '):
+			keystate = re.split('[,;/: ]*', cmd)[1:]
+			self.db.execute("INSERT INTO keylog VALUES (DATETIME('now'),'','',?,'')", (', '.join(keystate),))
+			c.privmsg(self.channel, 'Key status set. Current key holders: {}'.format(', '.join(keystate)))
+			return
+		keylog = re.match('keylog *([0-9]*)', cmd)
+		if keylog:
+			num = max(50, int(keylog.group(1) or 8))
+			c.privmsg(nick, 'The latest {} key log entries:'.format(num))
+			loglines = self.db.execute("SELECT * FROM keylog ORDER BY timestamp DESC LIMIT ?", (num,))
+			for timestamp, fromnick, tonick, keystate, comment in reversed(loglines):
+				c.privmsg(nick, '{}: {}→{}; Key holders {}; Comment: "{}"'.format(
+						timestamp, fromnick, tonick, keystate, comment))
+			c.privmsg(nick, 'EOL')
+			return
+		# fall-through
 		c.notice(nick, 'I don\'t know what you mean with "{}"'.format(cmd))
 
 def main():
@@ -220,7 +254,10 @@ def main():
 	channel = sys.argv[2]
 	nickname = sys.argv[3]
 
-	bot = Afrabot(channel, nickname, server, port)
+	db = sqlite3.connect('afrab0t.db')
+	db.execute("CREATE TABLE IF NOT EXISTS keylog (timestamp TIMESTAMP, fromnick TEXT, tonick TEXT, keystate TEXT, comment TEXT)")
+
+	bot = Afrabot(db, channel, nickname, server, port)
 	bot.start()
 
 if __name__ == "__main__":
