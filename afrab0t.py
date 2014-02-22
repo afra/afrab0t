@@ -25,6 +25,7 @@ class Afrabot(irc.bot.SingleServerIRCBot):
 		self.chaossternchen = []
 		self.catpiccache = []
 		self.reddit = praw.Reddit(user_agent='AfRAb0t/0.23 by jaseg')
+		self.moincount = 0
 
 	def on_nicknameinuse(self, c, e):
 		c.nick(c.get_nickname() + "_")
@@ -76,6 +77,13 @@ class Afrabot(irc.bot.SingleServerIRCBot):
 		if match:
 			c.privmsg(target, 'Fixed that pr0gramm link for you: http://pr0gramm.com/static/'+match.group(1))
 			return
+		if line == 'moin':
+			self.moincount += 1
+			if self.moincount == 5:
+				c.privmsg(target, 'moin')
+			return
+		else:
+			self.moincount = 0
 
 	def on_dccmsg(self, c, e):
 		c.privmsg("Störe meine Kreise nicht.")
