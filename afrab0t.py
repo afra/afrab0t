@@ -192,7 +192,12 @@ plenum - list plenum topics
 			c.privmsg(target, 'what is your problem?')
 			return
 		if cmd.rstrip('?') in ('where', 'location', 'wo'):
-			c.privmsg(target, 'AfRA e.V. is located at Herzbergstr. 55, 10365 Berlin, 2.HH/Aufgang B, 3. floor on the left (Rm 3.08). Public transport: Tram M8, 21, 37 & Bus 256, N56, N50 → Herzbergstr./Siegfriedstr.')
+			c.privmsg(target, 'AfRA e.V. is located at Herzbergstr. 55, 10365 Berlin, 2.HH/Aufgang B, 3. floor on the'
+					'left (Rm 3.08). Public transport: Tram M8, 21, 37 & Bus 256, N56, N50 → Herzbergstr./Siegfriedstr.'
+					'Door closed? Try +49-176-29769254 !')
+			return
+		if cmd.rstrip('?') in ('tel', 'telefon', 'telephone', 'phone', 'handy', 'fon'):
+			c.privmsg(target, "Locked out? Wanna know what's up at AfRA? Try +49-176-29769254 !")
 			return
 		if cmd.rstrip('?!.') in ('cats', 'katzen', 'kittens', 'kätzchen'):
 			try:
