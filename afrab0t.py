@@ -175,6 +175,7 @@ chaos*: [foobar] - add plenum topic
 delete chaos* [num] - delete plenum topic number [n]
 shutdown - list things to do when closing the space
 plenum - list plenum topics
+... and many more, doc urgently needed. Please submit PRs on github: https://github.com/afra/afrab0t
 """
 			for line in helptext.splitlines():
 				c.privmsg(target, line)
