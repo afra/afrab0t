@@ -84,6 +84,14 @@ class Afrabot(irc.bot.SingleServerIRCBot):
 			return
 		else:
 			self.moincount = 0
+		if line.lstrip('.!#').startswith('eta '):
+			eta = line[4:].strip()
+			with self.db as db:
+				db.execute("DELETE FROM etas WHERE nick=?", (nick,))
+				if eta:
+					db.execute("INSERT INTO etas VALUES (DATETIME('now'), ?, ?)", (nick, eta))
+			c.privmsg(nick, 'ETA registered. Thanks!')
+			return
 
 	def on_dccmsg(self, c, e):
 		c.privmsg("Störe meine Kreise nicht.")
@@ -214,6 +222,16 @@ plenum - list plenum topics
 		if cmd.rstrip('?!.') in ('answer', 'antworte', 'antwort'):
 			c.privmsg(target, '42')
 			return
+		# ETA handling
+		if cmd.rstrip('?') in ('etas', 'who', 'da'):
+			with self.db as db:
+				db.execute("DELETE FROM etas WHERE timestamp < DATETIME('now', '-1 day')")
+			etas = ', '.join(nick+': '+eta for nick,eta in db.execute("SELECT nick, eta FROM etas").fetchall())
+			if etas:
+				c.privmsg(target, 'Current ETAs: '+etas)
+			else:
+				c.privmsg(target, 'No ETAs have been announced yet.')
+			return
 		# key handling
 		keycmd = re.match('key ([\w]+) to ([\w]+)( *: *.*)?', cmd)
 		if keycmd:
@@ -269,6 +287,7 @@ def main():
 
 	db = sqlite3.connect('afrab0t.db')
 	db.execute("CREATE TABLE IF NOT EXISTS keylog (timestamp TIMESTAMP, fromnick TEXT, tonick TEXT, keystate TEXT, comment TEXT)")
+	db.execute("CREATE TABLE IF NOT EXISTS etas (timestamp TIMESTAMP, nick TEXT, eta TEXT)")
 
 	bot = Afrabot(db, channel, nickname, server, port)
 	bot.start()
