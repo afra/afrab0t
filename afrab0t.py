@@ -92,6 +92,9 @@ class Afrabot(irc.bot.SingleServerIRCBot):
 					db.execute("INSERT INTO etas VALUES (DATETIME('now'), ?, ?)", (nick, eta))
 			c.privmsg(nick, 'ETA registered. Thanks!')
 			return
+		if 'union' in line.lower():
+			c.privmsg(target, 'Uniohon: https://www.youtube.com/watch?v=ym3Giin2C8k')
+			return
 
 	def on_dccmsg(self, c, e):
 		c.privmsg("Störe meine Kreise nicht.")
