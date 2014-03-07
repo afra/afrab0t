@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 
 import time
+import datetime
 try:
 	import re2 as re
 except:
@@ -251,6 +252,16 @@ plenum - list plenum topics
 				keystate = ', '.join(keystatelist)
 				db.execute("INSERT INTO keylog VALUES (DATETIME('now'),?,?,?,?)", (fromnick, tonick, keystate, comment))
 				c.privmsg(self.channel, 'Key transfer: {}→{}. Current key holders: {}'.format(fromnick, tonick, keystate))
+			return
+		if cmd.rstrip('?') == 'progress':
+			t = datetime.datetime.now().time()
+			p = 0
+			if t.hour > 6 and t.hour < 18:
+				p = ((t.hour-6)*3600+t.minute*60+t.second)/(3600*11)
+			foo = round(67*p)
+			bar = '='*foo
+			space = ' '*(67-foo)
+			c.privmsg(target, '['+bar+'>'+space+'] ({:.2f}%)'.format(p*100))
 			return
 		if cmd.startswith('keystate '):
 			keystate = re.split('[,;/: ]*', cmd)[1:]
