@@ -121,6 +121,11 @@ class Afrabot(irc.bot.SingleServerIRCBot):
 			if re.findall('(^|\W)'+re.escape(emoticon)+'(\W|$)', line):
 				c.privmsg(target, 'Did you mean {} (U+{:x}) with “{}”?'.format(uchar, ord(uchar), emoticon))
 				return
+		m = re.findall('(^|\W)(afra)(\W|$)', line, re.IGNORECASE)
+		for match in m:
+			if match[1] != 'AfRA':
+				c.privmsg(target, "I'm sure you meant AfRA, not "+match[1])
+				return
 
 	def on_dccmsg(self, c, e):
 		c.privmsg("Störe meine Kreise nicht.")
