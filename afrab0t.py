@@ -96,6 +96,31 @@ class Afrabot(irc.bot.SingleServerIRCBot):
 		if 'union' in line.lower():
 			c.privmsg(target, 'Uniohon: https://www.youtube.com/watch?v=ym3Giin2C8k')
 			return
+		emoticontable = {
+				':)': '☺',
+				':D': '😃',
+				'^^': '😄',
+				'^_^':'😄',
+				':|': '😑',
+				':(': '☹',
+				':/': '😕',
+				':\\':'😕',
+				'-.-':'😒',
+				':P' :'😛',
+				';P' :'😜',
+				'xP' :'😝',
+				';)' :'😉',
+				':?' :'😖',
+				'>:(':'😠',
+				'D:' :'😦',
+				':o' :'😯',
+				':O' :'😮',
+				'B)' :'😎'
+				}
+		for emoticon, uchar in emoticontable.items():
+			if re.findall('(^|\W)'+re.escape(emoticon)+'(\W|$)', line):
+				c.privmsg(target, 'Did you mean {} (U+{:x}) with “{}”?'.format(uchar, ord(uchar), emoticon))
+				return
 
 	def on_dccmsg(self, c, e):
 		c.privmsg("Störe meine Kreise nicht.")
