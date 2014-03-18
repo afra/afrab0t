@@ -98,30 +98,31 @@ class Afrabot(irc.bot.SingleServerIRCBot):
 			return
 		emoticontable = {
 				':)': '☺',
-				':D': '😃',
-				'^^': '😄',
-				'^_^':'😄',
-				':|': '😑',
+# Some lines commented out due to lack of widespread font support
+#				':D': '😃',
+#				'^^': '😄',
+#				'^_^':'😄',
+#				':|': '😑',
 				':(': '☹',
-				':/': '😕',
-				':\\':'😕',
-				'-.-':'😒',
-				':P' :'😛',
-				';P' :'😜',
-				'xP' :'😝',
-				';)' :'😉',
-				':?' :'😖',
-				'>:(':'😠',
-				'D:' :'😦',
-				':o' :'😯',
-				':O' :'😮',
-				'B)' :'😎'
+#				':/': '😕',
+#				':\\':'😕',
+#				'-.-':'😒',
+#				':P' :'😛',
+#				';P' :'😜',
+#				'xP' :'😝',
+#				';)' :'😉',
+#				':?' :'😖',
+#				'>:(':'😠',
+#				'D:' :'😦',
+#				':o' :'😯',
+#				':O' :'😮',
+#				'B)' :'😎'
 				}
 		for emoticon, uchar in emoticontable.items():
 			if re.findall('(^|\W)'+re.escape(emoticon)+'(\W|$)', line):
 				c.privmsg(target, 'Did you mean {} (U+{:x}) with “{}”?'.format(uchar, ord(uchar), emoticon))
 				return
-		m = re.findall('(^|\W)(afra)(\W|$)', line, re.IGNORECASE)
+		m = re.findall('(^|[\s)(afra)(\s|$)', line, re.IGNORECASE)
 		for match in m:
 			if match[1] != 'AfRA':
 				c.privmsg(target, "I'm sure you meant AfRA, not "+match[1])
@@ -307,6 +308,12 @@ plenum - list plenum topics
 				c.privmsg(nick, '{}: {}→{}; Key holders {}; Comment: "{}"'.format(
 						timestamp, fromnick, tonick, keystate, comment))
 			c.privmsg(nick, 'EOL')
+			return
+		if cmd.startswith("fuck you"):
+			c.privmsg(target, 'Fucking is entirely unnecessary: I can reproduce via copy-and-paste!')
+			return
+		if cmd.startswith("geh kacken"):
+			c.privmsg(target, 'Command "kacken" not implemented. You are welcome to submit a pull request on github at https://github.com/afra/afrab0t')
 			return
 		# fall-through
 		c.notice(nick, 'I don\'t know what you mean with "{}"'.format(cmd))
