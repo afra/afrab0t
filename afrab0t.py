@@ -45,6 +45,10 @@ class Afrabot(irc.bot.SingleServerIRCBot):
 		if len(a) > 1 and a[0].lower() == self.nick:
 			self.do_command(e, a[1].strip().lower(), nick, target)
 			return
+
+		# zeltofilter
+		if 'zeltoph' in nick:
+			return
 		
 		match = re.match('^({} *:)? *chaos-?([☆★☼☀*]|sternchen) *: ?(.*)$'.format(self.nick), line)
 		if match:
