@@ -75,6 +75,9 @@ class Afrabot(irc.bot.SingleServerIRCBot):
 		if re.match('^hail eris[.!]* ', line.lower()):
 			c.privmsg(target, "All Hail Discordia!")
 			return
+		if re.match("gh?ah?nh?dh?ih?", line.lower()) and not re.match("Gandhi", line):
+			c.privmsg(target, "It's spelled Gandhi")
+			return
 		if re.search('https?://[-a-z0-9.]*facebook.com', line.lower()):
 			c.privmsg(target, 'A facebook link? srsly? Get some self-respect!')
 			return
