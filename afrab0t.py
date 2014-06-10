@@ -6,7 +6,7 @@ try:
 	import re2 as re
 except:
 	import re
-
+from random import random
 import requests
 from bs4 import UnicodeDammit
 import irc.bot
@@ -96,13 +96,37 @@ class Afrabot(irc.bot.SingleServerIRCBot):
 			eta = line[4:].strip()
 			with self.db as db:
 				db.execute("DELETE FROM etas WHERE nick=?", (nick,))
-t				if eta:
+				if eta:
 					db.execute("INSERT INTO etas VALUES (DATETIME('now'), ?, ?)", (nick, eta))
 			c.privmsg(nick, 'ETA registered. Thanks!')
 			return
 		if 'union' in line.lower():
 			c.privmsg(target, 'Uniohon: https://www.youtube.com/watch?v=ym3Giin2C8k')
 			return
+		m = re.findall('(^|\s)(afra)(\s|$)', line, re.IGNORECASE)
+		for match in m:
+			if match[1] != 'AfRA' and random() < 0.1:
+				c.privmsg(target, "I'm sure you meant AfRA, not "+match[1])
+				return
+
+	def on_dccmsg(self, c, e):
+		c.privmsg("Störe meine Kreise nicht.")
+
+	def on_dccchat(self, c, e):
+		if len(e.arguments) != 2:
+			return
+		args = e.arguments[1].split()
+		if len(args) == 4:
+			try:
+				address = ip_numstr_to_quad(args[2])
+				port = int(args[3])
+			except ValueError:
+				return
+			self.dcc_connect(address, port)
+
+	def do_command(self, e, cmd, nick, target):
+		c = self.connection
+
 		emoticontable = {
 				':)': '☺',
 # Some lines commented out due to lack of widespread font support
@@ -126,32 +150,10 @@ t				if eta:
 #				'B)' :'😎'
 				}
 		for emoticon, uchar in emoticontable.items():
-			if re.findall('(^|\W)'+re.escape(emoticon)+'(\W|$)', line):
+			if re.findall('(^|\W)'+re.escape(emoticon)+'(\W|$)', cmd) and random() < 0.333:
 				c.privmsg(target, 'Did you mean {} (U+{:x}) with “{}”?'.format(uchar, ord(uchar), emoticon))
-				return
-		m = re.findall('(^|[\s)(afra)(\s|$)', line, re.IGNORECASE)
-		for match in m:
-			if match[1] != 'AfRA':
-				c.privmsg(target, "I'm sure you meant AfRA, not "+match[1])
-				return
+				break
 
-	def on_dccmsg(self, c, e):
-		c.privmsg("Störe meine Kreise nicht.")
-
-	def on_dccchat(self, c, e):
-		if len(e.arguments) != 2:
-			return
-		args = e.arguments[1].split()
-		if len(args) == 4:
-			try:
-				address = ip_numstr_to_quad(args[2])
-				port = int(args[3])
-			except ValueError:
-				return
-			self.dcc_connect(address, port)
-
-	def do_command(self, e, cmd, nick, target):
-		c = self.connection
 		if cmd.startswith('open'):
 			if '?' in cmd or '‽' in cmd:
 				if cmd.count('?') >= 5:
