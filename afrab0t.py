@@ -75,7 +75,7 @@ class Afrabot(irc.bot.SingleServerIRCBot):
 		if re.match('^hail eris[.!]* ', line.lower()):
 			c.privmsg(target, "All Hail Discordia!")
 			return
-		if re.match("gh?ah?nh?dh?ih?", line.lower()) and not re.match("Gandhi", line):
+		if re.match(".*\bgh?ah?nh?dh?ih?\b.*", line.lower()) and not re.match(".*\bGandhi\b.*", line):
 			c.privmsg(target, "It's spelled Gandhi")
 			return
 		if re.search('https?://[-a-z0-9.]*facebook.com', line.lower()):
@@ -96,7 +96,7 @@ class Afrabot(irc.bot.SingleServerIRCBot):
 			eta = line[4:].strip()
 			with self.db as db:
 				db.execute("DELETE FROM etas WHERE nick=?", (nick,))
-				if eta:
+t				if eta:
 					db.execute("INSERT INTO etas VALUES (DATETIME('now'), ?, ?)", (nick, eta))
 			c.privmsg(nick, 'ETA registered. Thanks!')
 			return
