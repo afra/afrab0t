@@ -109,6 +109,9 @@ class Afrabot(irc.bot.SingleServerIRCBot):
 		if random() < foo:
 			self.kick(nick)
 		
+		if '(╯°□°）╯︵ ┻━┻' in line or '(╯ ͡° ͜ʖ ͡°) ╯︵ ┻━┻' in line:
+			reply('┬─┬ノ(ಠ_ಠノ)')
+
 		match = re.match('^({} *:)? *chaos-?([☆★☼☀*]|sternchen) *: ?(.*)$'.format(self.nick), line)
 		if match:
 			newcs = match.group(3)
@@ -119,7 +122,7 @@ class Afrabot(irc.bot.SingleServerIRCBot):
 		if line.startswith('.wiki '):
 			wikipage = line[len('.wiki '):].strip()
 			if re.match('^[-_+\w]+$', wikipage):
-				wikiurl = 'https://afra-berlin.de/dokuwiki/doku.php?id={}'.format(wikipage)
+				wikiurl = 'http://afra-berlin.de/dokuwiki/doku.php?id={}'.format(wikipage)
 				if 'Dieses Thema existiert noch nicht' in requests.get(wikiurl).text:
 					reply("I'm sorry, I can't find a wiki page with that name.")
 				else:
