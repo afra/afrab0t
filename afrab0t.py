@@ -18,6 +18,9 @@ import sqlite3
 from contextlib import contextmanager
 import settings
 
+def log(*args):
+	print(time.strftime('\x1B[93m[%m-%d %H:%M:%S]\x1B[0m'), *args+('\x1B[0m',))
+
 class Afrabot(irc.bot.SingleServerIRCBot):
 	def __init__(self, db, channel, nickname, server, port=6667):
 		irc.bot.SingleServerIRCBot.__init__(self, [(server, port)], nickname, nickname)
@@ -37,23 +40,31 @@ class Afrabot(irc.bot.SingleServerIRCBot):
 		self.connection.privmsg(self.channel, msg)
 
 	def identify(self):
+		log('\033[92mIdentifying\033[0m')
 		self.send('NickServ', 'identify '+settings.NICKSERV_PASSWORD)
 	
 	def regain(self):
+		log('\033[92mRegaining\033[0m')
 		self.send('NickServ', ' '.join(('regain', self.nick, settings.NICKSERV_PASSWORD)))
 	
 	def get_op(self, op=True):
-		self.send('ChanServ', ' '.join(('OP' if op else 'DEOP', self.channel, self.nick)))
+		line = ' '.join(('OP' if op else 'DEOP', self.channel, self.nick))
+		print(line)
+		self.send('ChanServ', line)
+		time.sleep(5.0)
 
 	@contextmanager
 	def op(self):
+		log('\033[91mGetting OP\033[0m')
 		self.get_op()
 		yield
+		log('\033[92mYielding OP\033[0m')
 		self.get_op(False)
 
-	def kick(self, nick):
+	def kick(self, nick, reason=''):
 		with self.op():
-			self.connection.kick(self.channel, nick)
+			log('\033[91mKicking {}\033[0m ({})'.format(nick, reason))
+			self.connection.kick(self.channel, nick, reason)
 
 	def on_nicknameinuse(self, c, e):
 		c.nick(c.get_nickname() + "_")
@@ -61,10 +72,20 @@ class Afrabot(irc.bot.SingleServerIRCBot):
 
 	def on_welcome(self, c, e):
 		c.join(self.channel)
+		self.send('jaseg', 'afrab0t online')
 		self.identify()
 
+	def on_privnotice(self, c, e):
+		log('\033[37mPRIVNOTICE {}→{}\033[0m'.format(e.source.nick, ' '.join(e.arguments)))
+
+	def on_pubnotice(self, c, e):
+		log('\033[37mPUBNOTICE {}→{}\033[0m'.format(e.source.nick, ' '.join(e.arguments)))
+
 	def on_privmsg(self, c, e):
-		self.do_command(e, e.arguments[0], e.source.nick, e.source.nick)
+		log('\033[37mPRI {}→{}\033[0m'.format(e.source.nick, ' '.join(e.arguments)))
+		def dm(msg):
+			self.send(e.source.nick, msg)
+		self.do_command(e, e.arguments[0], e.source.nick, e.source.nick, dm, dm)
 
 	def on_pubmsg(self, c, e):
 		nick = e.source.nick
@@ -74,6 +95,7 @@ class Afrabot(irc.bot.SingleServerIRCBot):
 		def dm(msg):
 			self.send(nick, msg)
 		line = UnicodeDammit(e.arguments[0]).unicode_markup
+		log('\033[37mPUB {}→{}\033[0m'.format(nick, line))
 		a = line.split(":", 1)
 		if len(a) > 1 and a[0].lower() == self.nick:
 			self.do_command(e, a[1].strip().lower(), nick, target, reply, dm)
@@ -115,7 +137,7 @@ class Afrabot(irc.bot.SingleServerIRCBot):
 		m = re.findall('(^|\s)?(gh?ah?nh?dh?ih?)(\s|$)?', line, re.IGNORECASE)
 		for _1,match,_2 in m:
 			if not re.match('(^|\s)?gandhi(\s|$)?', match, re.IGNORECASE):
-				reply("It's spelled Gandhi")
+				self.kick(nick, "It's spelled Gandhi")
 				return
 		if re.search('https?://[-a-z0-9.]*facebook.com', line.lower()):
 			reply('A facebook link? srsly? Get some self-respect!')
