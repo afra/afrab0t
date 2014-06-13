@@ -394,29 +394,11 @@ plenum - list plenum topics
 		c.notice(nick, 'I don\'t know what you mean with "{}"'.format(cmd))
 
 def main():
-	import sys
-	if len(sys.argv) != 4:
-		print("Usage: afrabot <server[:port]> <channel> <nickname>")
-		sys.exit(1)
-
-	s = sys.argv[1].split(":", 1)
-	server = s[0]
-	if len(s) == 2:
-		try:
-			port = int(s[1])
-		except ValueError:
-			print("Error: Erroneous port.")
-			sys.exit(1)
-	else:
-		port = 6667
-	channel = sys.argv[2]
-	nickname = sys.argv[3]
-
 	db = sqlite3.connect('afrab0t.db')
 	db.execute("CREATE TABLE IF NOT EXISTS keylog (timestamp TIMESTAMP, fromnick TEXT, tonick TEXT, keystate TEXT, comment TEXT)")
 	db.execute("CREATE TABLE IF NOT EXISTS etas (timestamp TIMESTAMP, nick TEXT, eta TEXT)")
 
-	bot = Afrabot(db, channel, nickname, server, port)
+	bot = Afrabot(db, settings.CHANNEL, settings.NICK, settings.SERVER, settings.PORT)
 	bot.start()
 
 if __name__ == "__main__":

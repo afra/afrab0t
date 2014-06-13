@@ -84,4 +84,4 @@ class DecodingLineBuffer(LineBuffer):
     errors = 'strict'
 
     def lines(self):
-        return (UnicodeDammit(line).unicode_markup for line in super(DecodingLineBuffer, self).lines())
+        return (UnicodeDammit(line, ["iso-8859-1", "latin-1"]).unicode_markup for line in super(DecodingLineBuffer, self).lines())
