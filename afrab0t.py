@@ -170,9 +170,9 @@ class Afrabot(irc.bot.SingleServerIRCBot):
 			reply('Uniohon: https://www.youtube.com/watch?v=ym3Giin2C8k')
 			return
 		m = re.findall('(^|\s)(afra)(\s|$)', line, re.IGNORECASE)
-		for match in m:
-			if match[1] != 'AfRA' and random() < 0.1:
-				reply("I'm sure you meant AfRA, not "+match[1])
+		for _1,match,_2 in m:
+			if match != 'AfRA' and match != 'afra' and random() < 0.1:
+				reply("I'm sure you meant AfRA, not "+match)
 				return
 
 	def on_dccmsg(self, c, e):
