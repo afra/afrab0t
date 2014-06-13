@@ -108,9 +108,11 @@ class Afrabot(irc.bot.SingleServerIRCBot):
 		foo = settings.VIPS.get(nick, 0)
 		if random() < foo:
 			self.kick(nick)
-		
-		if '(╯°□°）╯︵ ┻━┻' in line or '(╯ ͡° ͜ʖ ͡°) ╯︵ ┻━┻' in line:
+	
+		match = re.match('.*┻━┻.*', line)
+		if match:
 			reply('┬─┬ノ(ಠ_ಠノ)')
+			return
 
 		match = re.match('^({} *:)? *chaos-?([☆★☼☀*]|sternchen) *: ?(.*)$'.format(self.nick), line)
 		if match:
