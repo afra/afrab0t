@@ -76,13 +76,13 @@ class Afrabot(irc.bot.SingleServerIRCBot):
 		self.identify()
 
 	def on_privnotice(self, c, e):
-		log('\033[37mPRIVNOTICE {}→{}\033[0m'.format(e.source.nick, ' '.join(e.arguments)))
+		log(' [ \033[96mNOTICE {}→{}\033[0m ]'.format(e.source.nick, ' '.join(e.arguments)))
 
 	def on_pubnotice(self, c, e):
-		log('\033[37mPUBNOTICE {}→{}\033[0m'.format(e.source.nick, ' '.join(e.arguments)))
+		log('   \033[96mNOTICE {}→{}\033[0m'.format(e.source.nick, ' '.join(e.arguments)))
 
 	def on_privmsg(self, c, e):
-		log('\033[37mPRI {}→{}\033[0m'.format(e.source.nick, ' '.join(e.arguments)))
+		log(' [ \033[37m{}→{}\033[0m ]'.format(e.source.nick, ' '.join(e.arguments)))
 		def dm(msg):
 			self.send(e.source.nick, msg)
 		self.do_command(e, e.arguments[0], e.source.nick, e.source.nick, dm, dm)
@@ -95,7 +95,7 @@ class Afrabot(irc.bot.SingleServerIRCBot):
 		def dm(msg):
 			self.send(nick, msg)
 		line = UnicodeDammit(e.arguments[0]).unicode_markup
-		log('\033[37mPUB {}→{}\033[0m'.format(nick, line))
+		log('   \033[37m{}→{}\033[0m'.format(nick, line))
 		a = line.split(":", 1)
 		if len(a) > 1 and a[0].lower() == self.nick:
 			self.do_command(e, a[1].strip().lower(), nick, target, reply, dm)
