@@ -32,6 +32,29 @@ class Afrabot(irc.bot.SingleServerIRCBot):
 		self.catpiccache = []
 		self.reddit = praw.Reddit(user_agent='AfRAb0t/0.23 by jaseg')
 		self.moincount = 0
+		self._topic = None
+
+
+	def on_currenttopic(self, c, e):
+		if e.arguments[0] == self.channel:
+			newtop = ' '.join(e.arguments[1:])
+			log('\033[92m   TOPIC '+newtop+'\033[0m')
+			self._topic = newtop
+		else:
+			log('\033[91m   Got a spurious topic message for '+e.arguments[0]+'\033[0m')
+
+	@property
+	def topic(self):
+		return self._topic
+
+	@topic.setter
+	def topic(self, newtop):
+		if self._topic is not None:
+			log('\033[92mSetting topic to '+newtop+'\033[0m')
+			self.send('ChanServ', 'TOPIC #afra '+newtop)
+			self._topic = newtop
+		else:
+			log('\033[91mNot setting topic since topic not yet known\033[0m')
 
 	def send(self, target, msg):
 		self.connection.privmsg(target, msg)
@@ -220,6 +243,8 @@ class Afrabot(irc.bot.SingleServerIRCBot):
 				reply('Did you mean {} (U+{:x}) with “{}”?'.format(uchar, ord(uchar), emoticon))
 				break
 
+		def spacetop(state):
+			self.topic = re.sub('space: (open|closed)', 'space: '+state, self.topic)
 		if cmd.startswith('open'):
 			if '?' in cmd or '‽' in cmd:
 				if cmd.count('?') >= 5:
@@ -237,6 +262,7 @@ class Afrabot(irc.bot.SingleServerIRCBot):
 					reply('u mad bro?')
 					return
 				self.sendchan('Space is open!')
+				spacetop('open')
 				self.lastopen = time.ctime()
 				self.spaceopen = True
 			return
@@ -254,6 +280,7 @@ class Afrabot(irc.bot.SingleServerIRCBot):
 					reply('u mad bro?')
 					return
 				self.sendchan('Space is closed! Please remember to follow the shutdown protocol.')
+				spacetop('closed')
 				if target != self.channel:
 					reply('Please remember to follow the shutdown protocol.')
 				self.lastopen = time.ctime()
