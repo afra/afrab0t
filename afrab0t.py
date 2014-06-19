@@ -17,23 +17,31 @@ import praw
 import sqlite3
 from contextlib import contextmanager
 import settings
+from threading import Thread
 
 def log(*args):
 	print(time.strftime('\x1B[93m[%m-%d %H:%M:%S]\x1B[0m'), *args+('\x1B[0m',))
 
 class Afrabot(irc.bot.SingleServerIRCBot):
-	def __init__(self, db, channel, nickname, server, port=6667):
+	def __init__(self, channel, nickname, server, port=6667):
 		irc.bot.SingleServerIRCBot.__init__(self, [(server, port)], nickname, nickname)
-		self.db = db
 		self.channel = channel
-		self.nick = nickname.lower()
-		self.lastopen = None
+		self._nick = nickname.lower()
 		self.chaossternchen = []
 		self.catpiccache = []
 		self.reddit = praw.Reddit(user_agent='AfRAb0t/0.23 by jaseg')
 		self.moincount = 0
 		self._topic = None
 
+	def start(self):
+		db = sqlite3.connect('afrab0t.db')
+		with db as db:
+			db.execute("CREATE TABLE IF NOT EXISTS keylog (timestamp TIMESTAMP, fromnick TEXT, tonick TEXT, keystate TEXT, comment TEXT)")
+			db.execute("CREATE TABLE IF NOT EXISTS etas (timestamp TIMESTAMP, nick TEXT, eta TEXT)")
+			db.execute("CREATE TABLE IF NOT EXISTS open (state TEXT, timestamp TIMESTAMP PRIMARY, nick TEXT)")
+			db.execute("INSERT OR REPLACE INTO open VALUES ('unknown', DATETIME('now'), ?)", self.nick)
+		self.db = db
+		super(Afrabot, self).start()
 
 	def on_currenttopic(self, c, e):
 		if e.arguments[0] == self.channel:
@@ -42,6 +50,31 @@ class Afrabot(irc.bot.SingleServerIRCBot):
 			self._topic = newtop
 		else:
 			log('\033[91m   Got a spurious topic message for '+e.arguments[0]+'\033[0m')
+
+	def love(self, nick):
+		with open('love.txt') as f:
+			lines = f.readlines()
+		for line in lines:
+			self.send(nick, line.strip())
+
+	@property
+	def lastopen(self):
+		return db.execute("SELECT * FROM open ORDER BY timestamp DESC LIMIT 1").fetchone()
+
+	def set_open(self, state, nick):
+		state = 'open' if state else 'closed'
+		self.db.execute("INSERT INTO open VALUES (?, DATETIME('now'), ?)", (state, nick))
+		self.sendchan('Space is '+state+'!')
+		self.topic = re.sub('space: (open|closed|unknown)', 'space: '+state, self.topic)
+
+	@property
+	def nick(self):
+		return self._nick
+
+	@nick.setter
+	def nick(self, newnick):
+		self._nick = newnick
+		self.connection.nick(newnick)
 
 	@property
 	def topic(self):
@@ -72,7 +105,6 @@ class Afrabot(irc.bot.SingleServerIRCBot):
 	
 	def get_op(self, op=True):
 		line = ' '.join(('OP' if op else 'DEOP', self.channel, self.nick))
-		print(line)
 		self.send('ChanServ', line)
 		time.sleep(5.0)
 
@@ -97,6 +129,9 @@ class Afrabot(irc.bot.SingleServerIRCBot):
 		c.join(self.channel)
 		self.send('jaseg', 'afrab0t online')
 		self.identify()
+
+	def on_kick(self, c, e):
+		self.on_welcome(c, e)
 
 	def on_privnotice(self, c, e):
 		log(' [ \033[96mNOTICE {}→{}\033[0m ]'.format(e.source.nick, ' '.join(e.arguments)))
@@ -243,48 +278,32 @@ class Afrabot(irc.bot.SingleServerIRCBot):
 				reply('Did you mean {} (U+{:x}) with “{}”?'.format(uchar, ord(uchar), emoticon))
 				break
 
-		def spacetop(state):
-			self.topic = re.sub('space: (open|closed)', 'space: '+state, self.topic)
+		def replyopen():
+			if self.lastopen:
+				reply('Space was last marked {} by {} on {}.'.format(*self.lastopen))
+			else:
+			reply("I don't know when was the last time the space was open.")
 		if cmd.startswith('open'):
 			if '?' in cmd or '‽' in cmd:
 				if cmd.count('?') >= 5:
 					self.sendchan('afrabot: open?')
 					return
-				if self.lastopen:
-					if self.spaceopen:
-						reply('Space was last marked open on '+self.lastopen)
-					else:
-						reply('Space was last marked closed on '+self.lastopen)
-				else:
-					reply("I don't know when was the last time the space was open.")
+				replyopen()
 			else:
 				if cmd.count('!') > 5:
 					reply('u mad bro?')
 					return
-				self.sendchan('Space is open!')
-				spacetop('open')
-				self.lastopen = time.ctime()
-				self.spaceopen = True
+				self.set_open(True, nick)
 			return
 		if cmd.startswith('closed'):
 			if '?' in cmd or '‽' in cmd:
-				if self.lastopen:
-					if self.spaceopen:
-						reply('Space was last marked open on '+self.lastopen)
-					else:
-						reply('Space was last marked closed on '+self.lastopen)
-				else:
-					reply("I don't know when was the last time the space was closed.")
+				replyopen()
 			else:
 				if cmd.count('!') > 5:
 					reply('u mad bro?')
 					return
-				self.sendchan('Space is closed! Please remember to follow the shutdown protocol.')
-				spacetop('closed')
-				if target != self.channel:
-					reply('Please remember to follow the shutdown protocol.')
-				self.lastopen = time.ctime()
-				self.spaceopen = False
+				dm('Please remember to follow the shutdown protocol.')
+				self.set_open(False)
 			return
 		if re.match('^ *genug +pleniert[.!]{,5}$', cmd) or re.match('^plenum[?!‽.]{,5}$', cmd):
 			cs = self.chaossternchen
@@ -421,11 +440,7 @@ plenum - list plenum topics
 		c.notice(nick, 'I don\'t know what you mean with "{}"'.format(cmd))
 
 def main():
-	db = sqlite3.connect('afrab0t.db')
-	db.execute("CREATE TABLE IF NOT EXISTS keylog (timestamp TIMESTAMP, fromnick TEXT, tonick TEXT, keystate TEXT, comment TEXT)")
-	db.execute("CREATE TABLE IF NOT EXISTS etas (timestamp TIMESTAMP, nick TEXT, eta TEXT)")
-
-	bot = Afrabot(db, settings.CHANNEL, settings.NICK, settings.SERVER, settings.PORT)
+	bot = Afrabot(settings.CHANNEL, settings.NICK, settings.SERVER, settings.PORT)
 	bot.start()
 
 if __name__ == "__main__":
