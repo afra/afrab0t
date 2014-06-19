@@ -8,16 +8,35 @@ except:
 	import re
 from random import random
 import requests
-from bs4 import UnicodeDammit
+from bs4 import UnicodeDammit, BeautifulSoup
 import irc.bot
 import irc.strings
 from irc.client import ip_numstr_to_quad, ip_quad_to_numstr, is_channel
 import pyimgur
 import praw
+import pyteaser
 import sqlite3
 from contextlib import contextmanager
 import settings
 from threading import Thread
+
+# From http://blog.mattheworiordan.com/post/13174566389/url-regular-expression-for-links-with-or-without-the
+#URL_REGEX='/((([A-Za-z]{3,9}:(?:\/\/)?)(?:[\-;:&=\+\$,\w]+@)?[A-Za-z0-9\.\-]+|(?:www\.|[\-;:&=\+\$,\w]+@)[A-Za-z0-9\.\-]+)((?:\/[\+~%\/\.\w\-_]*)?\??(?:[\-\+=&;%@\.\w_]*)#?(?:[\.\!\/\\\w]*))?)/'
+# From http://stackoverflow.com/questions/161738/what-is-the-best-regular-expression-to-check-if-a-string-is-a-valid-url
+URL_REGEX="""/^(https?|ftp):\/\/(?#                                      protocol
+)(([a-z0-9$_\.\+!\*\'\(\),;\?&=-]|%[0-9a-f]{2})+(?#         username
+)(:([a-z0-9$_\.\+!\*\'\(\),;\?&=-]|%[0-9a-f]{2})+)?(?#      password
+)@)?(?#                                                     auth requires @
+)((([a-z0-9]\.|[a-z0-9][a-z0-9-]*[a-z0-9]\.)*(?#             domain segments AND
+)[a-z][a-z0-9-]*[a-z0-9](?#                                 top level domain  OR
+)|((\d|[1-9]\d|1\d{2}|2[0-4][0-9]|25[0-5])\.){3}(?#
+)(\d|[1-9]\d|1\d{2}|2[0-4][0-9]|25[0-5])(?#             IP address
+))(:\d+)?(?#                                                port
+))(((\/+([a-z0-9$_\.\+!\*\'\(\),;:@&=-]|%[0-9a-f]{2})*)*(?# path
+)(\?([a-z0-9$_\.\+!\*\'\(\),;:@&=-]|%[0-9a-f]{2})*)(?#      query string
+)?)?)?(?#                                                   path and query string optional
+)(#([a-z0-9$_\.\+!\*\'\(\),;:@&=-]|%[0-9a-f]{2})*)?(?#      fragment
+)$/i"""
 
 def log(*args):
 	print(time.strftime('\x1B[93m[%m-%d %H:%M:%S]\x1B[0m'), *args+('\x1B[0m',))
@@ -146,6 +165,7 @@ class Afrabot(irc.bot.SingleServerIRCBot):
 		self.do_command(e, e.arguments[0], e.source.nick, e.source.nick, dm, dm)
 
 	def on_pubmsg(self, c, e):
+		self._lasturl = None # reset url cache on any pubmsgs
 		nick = e.source.nick
 		target = e.target if is_channel(e.target) else nick
 		def reply(msg):
@@ -224,10 +244,15 @@ class Afrabot(irc.bot.SingleServerIRCBot):
 					db.execute("INSERT INTO etas VALUES (DATETIME('now'), ?, ?)", (nick, eta))
 			dm('ETA registered. Thanks!')
 			return
-		if 'union' in line.lower():
-			reply('Uniohon: https://www.youtube.com/watch?v=ym3Giin2C8k')
-			return
+		m = re.findall(URL_REGEX, line.lower())
+		for match in m:
 		m = re.findall('(^|\s)(afra)(\s|$)', line, re.IGNORECASE)
+		for url,*_ in m:
+			res = requests.get(url)
+			self._lasturl = url
+			if res.status_code == requests.codes.ok:
+				soup = BeautifulSoup(res.text)
+				reply(soup.title.string)
 		for _1,match,_2 in m:
 			if match != 'AfRA' and match != 'afra' and random() < 0.1:
 				reply("I'm sure you meant AfRA, not "+match)
@@ -436,6 +461,12 @@ plenum - list plenum topics
 		if cmd.startswith("geh kacken"):
 			reply('Command "kacken" not implemented. You are welcome to submit a pull request on github at https://github.com/afra/afrab0t')
 			return
+		if cmd.startswith('summarize'):
+			_1,_2,url = cmd.partition(' ')
+			url = url or self._lasturl
+			if url:
+				for line in pyteaser.SummarizeUrl(url):
+					reply(line)
 		# fall-through
 		c.notice(nick, 'I don\'t know what you mean with "{}"'.format(cmd))
 
