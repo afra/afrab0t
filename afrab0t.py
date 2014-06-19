@@ -14,7 +14,6 @@ import irc.strings
 from irc.client import ip_numstr_to_quad, ip_quad_to_numstr, is_channel
 import pyimgur
 import praw
-import pyteaser
 import sqlite3
 from contextlib import contextmanager
 import settings
@@ -165,7 +164,6 @@ class Afrabot(irc.bot.SingleServerIRCBot):
 		self.do_command(e, e.arguments[0], e.source.nick, e.source.nick, dm, dm)
 
 	def on_pubmsg(self, c, e):
-		self._lasturl = None # reset url cache on any pubmsgs
 		nick = e.source.nick
 		target = e.target if is_channel(e.target) else nick
 		def reply(msg):
@@ -245,14 +243,12 @@ class Afrabot(irc.bot.SingleServerIRCBot):
 			dm('ETA registered. Thanks!')
 			return
 		m = re.findall(URL_REGEX, line.lower())
-		for match in m:
-		m = re.findall('(^|\s)(afra)(\s|$)', line, re.IGNORECASE)
 		for url,*_ in m:
 			res = requests.get(url)
-			self._lasturl = url
 			if res.status_code == requests.codes.ok:
 				soup = BeautifulSoup(res.text)
 				reply(soup.title.string)
+		m = re.findall('(^|\s)(afra)(\s|$)', line, re.IGNORECASE)
 		for _1,match,_2 in m:
 			if match != 'AfRA' and match != 'afra' and random() < 0.1:
 				reply("I'm sure you meant AfRA, not "+match)
@@ -307,7 +303,7 @@ class Afrabot(irc.bot.SingleServerIRCBot):
 			if self.lastopen:
 				reply('Space was last marked {} by {} on {}.'.format(*self.lastopen))
 			else:
-			reply("I don't know when was the last time the space was open.")
+				reply("I don't know when was the last time the space was open.")
 		if cmd.startswith('open'):
 			if '?' in cmd or '‽' in cmd:
 				if cmd.count('?') >= 5:
@@ -461,12 +457,6 @@ plenum - list plenum topics
 		if cmd.startswith("geh kacken"):
 			reply('Command "kacken" not implemented. You are welcome to submit a pull request on github at https://github.com/afra/afrab0t')
 			return
-		if cmd.startswith('summarize'):
-			_1,_2,url = cmd.partition(' ')
-			url = url or self._lasturl
-			if url:
-				for line in pyteaser.SummarizeUrl(url):
-					reply(line)
 		# fall-through
 		c.notice(nick, 'I don\'t know what you mean with "{}"'.format(cmd))
 
