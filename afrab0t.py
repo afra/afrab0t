@@ -18,6 +18,7 @@ import sqlite3
 from contextlib import contextmanager
 import settings
 from threading import Thread
+from collections import defaultdict
 
 # From http://blog.mattheworiordan.com/post/13174566389/url-regular-expression-for-links-with-or-without-the
 #URL_REGEX='/((([A-Za-z]{3,9}:(?:\/\/)?)(?:[\-;:&=\+\$,\w]+@)?[A-Za-z0-9\.\-]+|(?:www\.|[\-;:&=\+\$,\w]+@)[A-Za-z0-9\.\-]+)((?:\/[\+~%\/\.\w\-_]*)?\??(?:[\-\+=&;%@\.\w_]*)#?(?:[\.\!\/\\\w]*))?)/'
@@ -47,6 +48,7 @@ class Afrabot(irc.bot.SingleServerIRCBot):
 		self._nick = nickname.lower()
 		self.chaossternchen = []
 		self.catpiccache = []
+		self.nickcatpiccache = defaultdict(lambda: [])
 		self.reddit = praw.Reddit(user_agent='AfRAb0t/0.23 by jaseg')
 		self.moincount = 0
 		self._topic = None
@@ -56,8 +58,8 @@ class Afrabot(irc.bot.SingleServerIRCBot):
 		with db as db:
 			db.execute("CREATE TABLE IF NOT EXISTS keylog (timestamp TIMESTAMP, fromnick TEXT, tonick TEXT, keystate TEXT, comment TEXT)")
 			db.execute("CREATE TABLE IF NOT EXISTS etas (timestamp TIMESTAMP, nick TEXT, eta TEXT)")
-			db.execute("CREATE TABLE IF NOT EXISTS open (state TEXT, timestamp TIMESTAMP PRIMARY, nick TEXT)")
-			db.execute("INSERT OR REPLACE INTO open VALUES ('unknown', DATETIME('now'), ?)", self.nick)
+			db.execute("CREATE TABLE IF NOT EXISTS open (state TEXT, timestamp TIMESTAMP, nick TEXT)")
+			db.execute("INSERT OR REPLACE INTO open VALUES ('unknown', DATETIME('now'), ?)", (self.nick,))
 		self.db = db
 		super(Afrabot, self).start()
 
@@ -77,7 +79,7 @@ class Afrabot(irc.bot.SingleServerIRCBot):
 
 	@property
 	def lastopen(self):
-		return db.execute("SELECT * FROM open ORDER BY timestamp DESC LIMIT 1").fetchone()
+		return self.db.execute("SELECT * FROM open ORDER BY timestamp DESC LIMIT 1").fetchone()
 
 	def set_open(self, state, nick):
 		state = 'open' if state else 'closed'
@@ -396,6 +398,21 @@ plenum - list plenum topics
 					reply("Gee, you really like those cat things, don't you? You know, I could use some love, too: https://github.com/afra/afrab0t")
 			except StopIteration:
 				reply('The intertubes are empty.')
+			return
+		if cmd.rstrip('?!.') == 'catspam':
+			def catspam():
+				try:
+					submissions = self.reddit.get_subreddit('cats').get_hot(limit=32)
+					for s in submissions:
+						if s.url not in self.nickcatpiccache[nick] and s.url not in self.catpiccache and not s.stickied and not s.is_self:
+							self.nickcatpiccache[nick].append(s.url)
+							dm(s.url)
+							time.sleep(3)
+				except Exception as e:
+					log('Catspam problem:', e)
+					reply('The intertubes are empty.')
+			thr = Thread(target=catspam)
+			thr.start()
 			return
 		if cmd.rstrip('?!.') in ('answer', 'antworte', 'antwort'):
 			reply('42')
