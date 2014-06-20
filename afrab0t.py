@@ -326,7 +326,7 @@ class Afrabot(irc.bot.SingleServerIRCBot):
 					reply('u mad bro?')
 					return
 				dm('Please remember to follow the shutdown protocol.')
-				self.set_open(False)
+				self.set_open(False, nick)
 			return
 		if re.match('^ *genug +pleniert[.!]{,5}$', cmd) or re.match('^plenum[?!‽.]{,5}$', cmd):
 			cs = self.chaossternchen
